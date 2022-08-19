@@ -18,9 +18,17 @@ warnings.filterwarnings("ignore")
 
 
 
+# # Fetching data from the server
+# url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# content = requests.get(url=url, params=param).json()
+# df = pd.json_normalize(content['data']['quotes'])
+
 # Fetching data from the server
 url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
-param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+param = {"convert":"USD","slug":"bitcoin","time_end":"1658275200","time_start":"1367107200"}
+
 content = requests.get(url=url, params=param).json()
 df = pd.json_normalize(content['data']['quotes'])
 
@@ -98,12 +106,28 @@ for j in [2,3,5]:
 
     print("POLYNOMIAL REGRESSION")
 
+# RMSE
     c=0
     for i in range(272):
         c+=(ypred[i]-ytest[i])**2
     c/=272
     
     print("Degree=",j,"        RMSE:",c**0.5)
+
+# MAPE
+    c=0
+    for i in range(272):
+        c+=abs((ytest[i]-ypred[i])/ytest[i])
+    c/=272
+    print("\t\t MAPE :",c*100)
+
+# SMAPE
+    c=0
+    for i in range(272):
+        c+= abs(ypred[i]-ytest[i])/((ytest[i]+ypred[i])/2)
+    c/=272
+    print("\t\t SMAPE:",c*100)
+
 
 print()
 print("POLYNOMIAL REGRESSION, depending upon no of days")

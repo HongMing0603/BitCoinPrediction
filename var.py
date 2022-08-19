@@ -18,9 +18,17 @@ warnings.filterwarnings("ignore")
 
 
 
+# # Fetching data from the server
+# url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# content = requests.get(url=url, params=param).json()
+# df = pd.json_normalize(content['data']['quotes'])
+
 # Fetching data from the server
 url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
-param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+param = {"convert":"USD","slug":"bitcoin","time_end":"1658275200","time_start":"1367107200"}
+
 content = requests.get(url=url, params=param).json()
 df = pd.json_normalize(content['data']['quotes'])
 
@@ -80,6 +88,8 @@ act=a2[:,1:]
 print("VAR")
 plt.plot(act,color='cyan',label='predicted')
 plt.plot(ap,label='actual')
+
+# MSE
 c=0
 for i in range(N):
    c+=(act[i]-ap[i])**2
@@ -87,7 +97,23 @@ c/=N
 
 
 #print RMSE
-print(c**0.5)
+print("RMSE",c**0.5)
+
+# MAPE
+c=0
+for i in range(N):
+    c+=abs((ap[i]-act[i])/act[i])
+c/=N
+print("MAPE:",c*100)
+
+# SMAPE
+c=0
+for i in range(N):
+    c+= abs(ap[i]-act[i])/((act[i]+ap[i])/2)
+c/=N
+print("SMAPE:",c*100)
+
+
 plt.xlabel('Days')
 plt.ylabel('Value')
 plt.legend()

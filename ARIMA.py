@@ -4,18 +4,22 @@ import requests
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 import warnings
+import statsmodels.api as sm
 warnings.filterwarnings("ignore")
 
 
 
 # Fetching data from the server
 url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
-param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+param = {"convert":"USD","slug":"bitcoin","time_end":"1658275200","time_start":"1367107200"}
+
 content = requests.get(url=url, params=param).json()
 df = pd.json_normalize(content['data']['quotes'])
 
 # Extracting and renaming the important variables
 df['Date']=pd.to_datetime(df['quote.USD.timestamp']).dt.tz_localize(None)
+# 沒有設定時區
 df['Low'] = df['quote.USD.low']
 df['High'] = df['quote.USD.high']
 df['Open'] = df['quote.USD.open']
@@ -76,11 +80,15 @@ test_X, test_y = X[train_size:].dropna(), y[train_size:].dropna()
 
 # Init the best SARIMAX model
 from statsmodels.tsa.arima_model import ARIMA
-model= ARIMA(
-    train_y,
-    exog=train_X,
-    order=(0,1,1)
-)
+model= sm.tsa.arima.ARIMA(train_y,exog=train_X, order=(0, 1, 1))
+
+
+
+# ARIMA(
+#     train_y,
+#     exog=train_X,
+#     order=(0,1,1)
+# )
 
 # training the model
 results = model.fit()
@@ -104,11 +112,19 @@ testActual = sc_out.inverse_transform(predictions[['Actual']])
 
 # prediction plots
 plt.figure(figsize=(20,10))
-plt.plot(predictions.index, testActual, label='Pred', color='blue')
-plt.plot(predictions.index, testPredict, label='Actual', color='red')
+plt.plot(predictions.index, testActual, label='Actual', color='blue')
+plt.plot(predictions.index, testPredict, label='Pred', color='red')
 plt.legend()
 plt.show()
 
 # print RMSE
 from statsmodels.tools.eval_measures import rmse
 print("RMSE:",rmse(testActual, testPredict))
+
+# print MAPE
+from index import mape
+print("MAPE:",mape(testActual, testPredict))
+
+#print SMAPE
+from index import smape
+print("SMAPE:",smape(testActual, testPredict))

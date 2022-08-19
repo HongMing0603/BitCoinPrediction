@@ -4,15 +4,25 @@ import requests
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 import warnings
+import statsmodels.api as sm
 warnings.filterwarnings("ignore")
 
 
 
+# # Fetching data from the server
+# url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# content = requests.get(url=url, params=param).json()
+# df = pd.json_normalize(content['data']['quotes'])
+
 # Fetching data from the server
 url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
-param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+param = {"convert":"USD","slug":"bitcoin","time_end":"1658275200","time_start":"1367107200"}
+
 content = requests.get(url=url, params=param).json()
 df = pd.json_normalize(content['data']['quotes'])
+
 
 # Extracting and renaming the important variables
 df['Date']=pd.to_datetime(df['quote.USD.timestamp']).dt.tz_localize(None)
@@ -48,6 +58,8 @@ dataset_for_prediction.index= dataset_for_prediction['Date']
 from sklearn.preprocessing import MinMaxScaler
 sc_in = MinMaxScaler(feature_range=(0, 1))
 scaled_input = sc_in.fit_transform(dataset_for_prediction[['Low', 'High', 'Open', 'Close', 'Volume', 'Mean']])
+# 轉換後他的columns name是0 1 2 3 4 5
+
 scaled_input = pd.DataFrame(scaled_input, index=dataset_for_prediction.index)
 X=scaled_input
 X.rename(columns={0:'Low', 1:'High', 2:'Open', 3:'Close', 4:'Volume', 5:'Mean'}, inplace=True)
@@ -75,12 +87,22 @@ test_X, test_y = X[train_size:].dropna(), y[train_size:].dropna()
 
 
 # Init the best ARMA model
-from statsmodels.tsa.arima_model import ARMA
-model= ARMA(
-    train_y,
-    exog=train_X,
-    order=(0,1,1)
-)
+
+model= sm.tsa.ARIMA(train_y,exog=train_X,order=(0,0,1))
+# 這時訓練模型外來源是train_X
+# Train_X -> train -> predict Train_y
+
+# ARMA(
+#     train_y,
+#     exog=train_X,
+#     order=(0,1,1)
+# )
+
+# sm.tsa.arima_model.ARMA(train_y,exog=train_X,order=(0,1,1))
+
+
+
+
 
 # training the model
 results = model.fit()
@@ -99,6 +121,7 @@ predictions.rename(columns={0:'Pred', 'predicted_mean':'Pred'}, inplace=True)
 
 
 # post-processing inverting normalization
+
 testPredict = sc_out.inverse_transform(predictions[['Pred']])
 testActual = sc_out.inverse_transform(predictions[['Actual']])
 
@@ -112,3 +135,11 @@ plt.show()
 # print RMSE
 from statsmodels.tools.eval_measures import rmse
 print("RMSE:",rmse(testActual, testPredict))
+
+# print MAPE
+from index import mape
+print("MAPE:",mape(testActual, testPredict))
+
+#print SMAPE
+from index import smape
+print("SMAPE:",smape(testActual, testPredict))

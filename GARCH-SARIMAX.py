@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from pandas.plotting import register_matplotlib_converters
+from pandas.plotting import register_matplotlib_converters 
 import arch
 register_matplotlib_converters()
 # %matplotlib inline
@@ -11,9 +11,17 @@ import warnings
 import requests
 warnings.filterwarnings("ignore")
 
-# import dataset
+# # import dataset
+# url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# content = requests.get(url=url, params=param).json()
+# df = pd.json_normalize(content['data']['quotes'])
+
+# Fetching data from the server
 url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
-param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+param = {"convert":"USD","slug":"bitcoin","time_end":"1658275200","time_start":"1367107200"}
+
 content = requests.get(url=url, params=param).json()
 df = pd.json_normalize(content['data']['quotes'])
 
@@ -76,14 +84,19 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 # Init the model
 predic_garch =[]
+# garch + SARIMAX 就是 garch - SARIMAX
 for i in range(test_size):
+  # 要把測試集都跑過一遍，比較耗時
   model= SARIMAX(pd.concat([train_y,test_y.iloc[:i+1]]),
+  # 從第1行開始取 (把train_y 跟 test_y 用concat混和?)
   exog=pd.concat([train_X,test_X.iloc[:i+1]]),
   order=(0,1,1),
   seasonal_order =(0, 0, 1, 12),
   enforce_invertibility=False, enforce_stationarity=False)
+  # 不使用強制平穩與強制平均轉換
   results= model.fit()
   garch = arch.arch_model(results.resid, p=1, q=1,vol='GARCH')
+  # resid是殘差
   garch_model = garch.fit(update_freq=1)
   garch_forecast = garch_model.forecast(start = train_size-1,horizon=1,method='simulation')
   predicted_et = garch_forecast.mean['h.1'].iloc[-1]
@@ -116,6 +129,7 @@ predictions.rename(columns={'predicted_mean':'Pred'}, inplace=True)
 print(predictions)
 for i in range(len(predictions)) : 
   predictions.iloc[i,0]= predictions.iloc[i,0]+predic_garch[i]
+  # sarimax prediction + garch
 
 
 
@@ -129,6 +143,15 @@ plt.plot(predictions.index, testPredict, label='Actual', color='red')
 plt.legend()
 plt.show()
 
+# RMSE
 from statsmodels.tools.eval_measures import rmse
 error=rmse(trainPredict, testPredict)
 print("RMSE:",error)
+
+# print MAPE
+from index import mape
+print("MAPE:",mape(trainPredict, testPredict))
+
+#print SMAPE
+from index import smape
+print("SMAPE:",smape(trainPredict, testPredict))

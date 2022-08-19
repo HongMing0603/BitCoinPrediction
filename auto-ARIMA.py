@@ -1,9 +1,16 @@
+from cmath import sqrt
+from enum import auto
+# from itertools import _Predicate*
+from operator import mod
 import pandas as pd
+from pmdarima import ARIMA
 import requests
 import matplotlib.pyplot as plt
 from pmdarima.arima import auto_arima
+import numpy as np
 
 from pandas.plotting import register_matplotlib_converters
+from sklearn.metrics import accuracy_score
 register_matplotlib_converters()
 
 import warnings
@@ -11,11 +18,20 @@ warnings.filterwarnings("ignore")
 
 
 
+# # Fetching data from the server
+# url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# content = requests.get(url=url, params=param).json()
+# df = pd.json_normalize(content['data']['quotes'])
+
 # Fetching data from the server
 url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
-param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+param = {"convert":"USD","slug":"bitcoin","time_end":"1658275200","time_start":"1367107200"}
+
 content = requests.get(url=url, params=param).json()
 df = pd.json_normalize(content['data']['quotes'])
+
 
 # Extracting and renaming the important variables
 df['Date']=pd.to_datetime(df['quote.USD.timestamp']).dt.tz_localize(None)
@@ -84,6 +100,14 @@ test_X, test_y = X[train_size:].dropna(), y[train_size:].dropna()
 
 
 # running auto-arima grid search to find the best model
+
+# from pmdarima import auto_arima
+# # 載入Auto - ARIMA
+# model = auto_arima(train_X, trace = True, error_action='ignore', suppress_warnings=True)
+# model.fit(train_X)
+
+# forecast = model.predict(n_periods=)
+
 step_wise=auto_arima(
     train_y,
     exogenous=train_X,
@@ -100,5 +124,39 @@ step_wise=auto_arima(
     stepwise=True
 )
 
+
 # print final results
 print(step_wise.summary())
+
+predictions, conf_int = step_wise.predict(n_periods=len(test_X), return_conf_int=True, exogenous = test_X)
+# 因為這裡程式跟前面不一樣 所以沒有 index(date time)
+act = pd.DataFrame(scaler_output.iloc[train_size:, 0])
+predictions = pd.DataFrame(predictions)
+# 把data完整的排成一個column (DataFrame)
+
+predictions.index = test_X.index
+predictions['Actual'] = act['BTC Price next day']
+predictions.rename(columns={0:'Pred'}, inplace=True)
+
+# inverse_normalize
+test_Pred = sc_out.inverse_transform(predictions[['Pred']])
+test_Actual = sc_out.inverse_transform(predictions[['Actual']])
+print("")
+
+
+
+# print RMSE
+from statsmodels.tools.eval_measures import rmse
+print("RMSE:",rmse(test_Actual, test_Pred))
+
+# print MAPE
+from index import mape
+print("MAPE:",mape(test_Actual, test_Pred))
+
+#print SMAPE
+from index import smape
+print("SMAPE:",smape(test_Actual, test_Pred))
+
+
+
+

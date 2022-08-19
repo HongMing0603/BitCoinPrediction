@@ -8,9 +8,17 @@ warnings.filterwarnings("ignore")
 
 
 
+# # Fetching data from the server
+# url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# content = requests.get(url=url, params=param).json()
+# df = pd.json_normalize(content['data']['quotes'])
+
 # Fetching data from the server
 url = "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical"
-param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+# param = {"convert":"USD","slug":"bitcoin","time_end":"1601510400","time_start":"1367107200"}
+param = {"convert":"USD","slug":"bitcoin","time_end":"1658275200","time_start":"1367107200"}
+
 content = requests.get(url=url, params=param).json()
 df = pd.json_normalize(content['data']['quotes'])
 
@@ -115,3 +123,12 @@ plt.show()
 # print RMSE
 from statsmodels.tools.eval_measures import rmse
 print("RMSE:",rmse(testActual, testPredict))
+
+
+# print MAPE
+from index import mape
+print("MAPE:",mape(testActual, testPredict))
+
+#print SMAPE
+from index import smape
+print("SMAPE:",smape(testActual, testPredict))
